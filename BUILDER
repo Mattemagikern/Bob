@@ -1,9 +1,10 @@
-suffixes {
-	objects ^(\.\/objects\/).*\.o$
-	inc .*(\/inc\/).*\.h$
-	src .*(\/src\/).*\.c$
+search {
+	objects ^(?:\.{1,2}\/)?(?:objects\/)(.*)\.o$
+	inc .*\/inc\/(.*)\.h$
+	src .*\/src\/(.*)\.c$
 	include_pattern (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
 }
+
 CC      = clang
 dep     = -Iinc -lmath
 FLAGS   = -Wall
@@ -20,3 +21,8 @@ crawl:
 stuff:
 	echo "stuff"
 	$FLAGS += -DDEBUG
+
+Builder:
+	echo $@
+	echo $?
+	$CC $FLAGS $@ -o objects/
