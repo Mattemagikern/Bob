@@ -1,0 +1,22 @@
+suffixes {
+	objects ^(\.\/objects\/).*\.o$
+	inc .*(\/inc\/).*\.h$
+	src .*(\/src\/).*\.c$
+	include_pattern (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
+}
+CC      = clang
+dep     = -Iinc -lmath
+FLAGS   = -Wall
+FLAGS  += $dep
+Entry   = .
+
+all: stuff
+	echo "Hello World!"
+	echo $CC $FLAGS
+
+crawl:
+	echo $CC
+
+stuff:
+	echo "stuff"
+	$FLAGS += -DDEBUG
