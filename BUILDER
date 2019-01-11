@@ -1,16 +1,17 @@
-suffixes {
-	objects ^(\.\/objects\/).*\.o$
-	inc .*(\/inc\/).*\.h$
-	src .*(\/src\/).*\.c$
+search {
+	objects ^(?:\.{1,2}\/)?(?:.*obj.*/)(.*\.o)
+	inc .*\/inc\/(.*)\.h$
+	src .*\/src\/(.*)\.c$
 	include_pattern (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
 }
+
 CC      = clang
-dep     = -Iinc -lmath
+dep     = -I../MasterThesis/code/inc
 FLAGS   = -Wall
 FLAGS  += $dep
 Entry   = .
 
-all: stuff
+all: stuff build
 	echo "Hello World!"
 	echo $CC $FLAGS
 
@@ -20,3 +21,8 @@ crawl:
 stuff:
 	echo "stuff"
 	$FLAGS += -DDEBUG
+
+../MasterThesis/code/obj/%.o:%.c
+	echo $@
+	echo $<
+	$CC $FLAGS -c -o $@ $< 

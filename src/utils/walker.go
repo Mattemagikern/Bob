@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"inc"
 	"io/ioutil"
 	"os"
@@ -14,10 +13,7 @@ func Walk() filepath.WalkFunc {
 		name := info.Name()
 		var includes []string
 		switch {
-		case inc.Sf.Objects.MatchString(path):
-			fmt.Printf("*.o visited: %s\n", path)
-			return nil
-		case inc.Sf.Inc.MatchString(path) || inc.Sf.Src.MatchString(path):
+		case inc.Sf.Src.MatchString(path):
 			data, err := ioutil.ReadFile(path)
 			if err != nil {
 				panic(err)
@@ -26,10 +22,20 @@ func Walk() filepath.WalkFunc {
 			for _, e := range tmp {
 				includes = append(includes, e[1])
 			}
+			inc.File_tree[name] = &inc.File{path, includes, time}
+		case inc.Sf.Inc.MatchString(path):
+			data, err := ioutil.ReadFile(path)
+			if err != nil {
+				panic(err)
+			}
+			tmp := inc.Sf.Inc_pattern.FindAllStringSubmatch(string(data), -1)
+			for _, e := range tmp {
+				includes = append(includes, e[1])
+			}
+			inc.Inc_tree[name] = &inc.File{path, includes, time}
 		default:
 			return nil
 		}
-		inc.File_tree[name] = inc.File{path, includes, time}
 		return nil
 	}
 }

@@ -29,13 +29,21 @@ type Recepie struct {
 	Dependencies []string
 	Commands     []string
 }
+type Build struct {
+	Name        string
+	Exstensions []string
+	Commands    []string
+}
 
 type Variable struct {
 	Name       string
 	Expression string
 }
 
-var File_tree map[string]File = make(map[string]File)
+var File_tree map[string]*File = make(map[string]*File)
+var Inc_tree map[string]*File = make(map[string]*File)
+var Objects map[string]*Object_file = make(map[string]*Object_file)
 var Recepies map[string]*Recepie = make(map[string]*Recepie)
 var Variables map[string]*Variable = make(map[string]*Variable)
 var Sf Suffix
+var Build_cmd *Build

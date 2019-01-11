@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"inc"
 	"os/exec"
@@ -12,56 +13,68 @@ func Execute(recepie string) (err error) {
 	if inc.Recepies[recepie] == nil {
 		panic("Non valid recepie or ingredient")
 	}
-	var stdout, stderr bytes.Buffer
 
 	for _, v := range inc.Recepies[recepie].Dependencies {
-		err = Execute(v)
+		if strings.Compare(v, "build") == 0 {
+			err = Build()
+		} else {
+			err = Execute(v)
+		}
+		if err != nil {
+			return
+		}
 	}
 
 	for indx, str := range inc.Recepies[recepie].Commands {
 		inc.Recepies[recepie].Commands[indx] = strings.Trim(str, " \t")
 	}
 	for _, str := range inc.Recepies[recepie].Commands {
-		var name, expression string
-		var tmp []string
-		switch {
-		case strings.Contains(str, "+="):
-			tmp = strings.Split(str, "+=")
-			name = strings.Trim(tmp[0][1:], " ")
-			expression = strings.Trim(tmp[1], " ")
-			inc.Variables[name].Expression += " " + expression
+		shell(str)
+	}
+	return
+}
 
-		case strings.Contains(str, "-="):
-			tmp = strings.Split(str, "-=")
-			name = strings.Trim(tmp[0][1:], " ")
-			expression = strings.Trim(tmp[1], " ")
-			inc.Variables[name].Expression = strings.Trim(inc.Variables[name].Expression, expression)
-
-		case strings.Contains(str, "="):
-			tmp = strings.Split(str, "=")
-			name = strings.Trim(tmp[0][1:], " ")
-			expression = strings.Trim(tmp[1], " ")
-			inc.Variables[name] = &inc.Variable{name, expression}
-		default:
-			if strings.Contains(str, "$") {
-				for _, v := range strings.Fields(str) {
-					if strings.Contains(v, "$") {
-						str = strings.Replace(str, v, inc.Variables[v[1:]].Expression, -1)
-					}
-				}
-			}
-			tmp = strings.SplitN(str, " ", 2)
-			cmd := exec.Command(strings.Trim(tmp[0], " "), strings.Trim(tmp[1], " "))
-			cmd.Stdout = &stdout
-			cmd.Stderr = &stderr
-			if err = cmd.Run(); err != nil {
-				fmt.Println(stderr.String())
-				panic("command failed!")
-			}
+func shell(s string) (err error) {
+	var v string
+	var boo bool
+	var stdout, stderr bytes.Buffer
+	v, boo, err = Substitute(s)
+	if !boo {
+		fmt.Println(v)
+		a := strings.Fields(v)
+		cmd := exec.Command(a[0], a[1:]...)
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		if err = cmd.Run(); err != nil {
+			return errors.New(stderr.String())
 		}
-		fmt.Printf("%s", stdout.String())
 		stdout.Reset()
 		stderr.Reset()
+	}
+	return
+}
+
+func Build() (err error) {
+	for k, v := range inc.File_tree {
+		if inc.Sf.Src.FindString(v.Path) == "" {
+			continue
+		}
+		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
+		obj, ok := inc.Objects[file_name+inc.Build_cmd.Exstensions[1]]
+		inc.Variables["<"] = &inc.Variable{"@", v.Path}
+		out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
+		inc.Variables["@"] = &inc.Variable{"<", out_path}
+		if ok != true {
+			for _, j := range inc.Build_cmd.Commands {
+				/*TODO: Goroutine shell, if error exit and cancel all other builds?*/
+				if err = shell(j); err != nil {
+					return err
+				}
+				/*TODO: ADD to state file/state map*/
+			}
+		} else if v.Timestamp.Sub(obj.Timestamp) != 0 {
+			fmt.Println(v.Timestamp.Sub(obj.Timestamp))
+		}
 	}
 	return
 }

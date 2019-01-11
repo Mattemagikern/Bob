@@ -2,7 +2,9 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"inc"
+	"strings"
 )
 
 func DFS() (err error) {
@@ -21,6 +23,10 @@ func DFS() (err error) {
 
 func dive(visited map[string]bool, start string, latest string) bool {
 	visited[latest] = true
+	if strings.Compare(latest, "build") == 0 {
+		fmt.Println(latest)
+		return false
+	}
 	for _, v := range inc.Recepies[latest].Dependencies {
 		if visited[v] == true {
 			panic("Circular dependencie!!")
