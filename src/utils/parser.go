@@ -35,6 +35,7 @@ func Parse_builder() (err error) {
 			inc.Sf.Inc_pattern = regexp.MustCompile(element[1])
 		}
 	}
+
 	for _, v := range recepies.FindAllString(string(dat), -1) {
 		var tmp []string
 		if tmp = builder.FindStringSubmatch(v); tmp != nil {

@@ -1,5 +1,5 @@
 search {
-	objects ^(?:\.{1,2}\/)?(?:.*obj.*/)(.*\.o)
+	objects ^(?:\.{1,2}\/)?(?:.*obj.*/)(.*\.o)$
 	inc .*\/inc\/(.*)\.h$
 	src .*\/src\/(.*)\.c$
 	include_pattern (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
