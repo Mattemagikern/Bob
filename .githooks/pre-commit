@@ -1,0 +1,7 @@
+#!/bin/sh
+
+gofiles=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$')
+	[ -z "$gofiles" ] && exit 0
+	
+	$(gofmt -s -w $gofiles)
+	$(git update-index --again)
