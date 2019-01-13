@@ -7,22 +7,22 @@ search {
 
 CC      = clang
 dep     = -I../MasterThesis/code/inc
-FLAGS   = -Wall
-FLAGS  += $dep
+CFLAGS   = -Wall
+CFLAGS  += $dep
 Entry   = .
 
 all: stuff build
 	echo "Hello World!"
-	echo $CC $FLAGS
+	echo $CC $CFLAGS
 
 crawl:
 	echo $CC
 
 stuff:
 	echo "stuff"
-	$FLAGS += -DDEBUG
+	$CFLAGS += -DDEBUG
 
 ../MasterThesis/code/obj/%.o:%.c
 	echo $@
 	echo $<
-	$CC $FLAGS -c -o $@ $< 
+	$CC $CFLAGS -c -o $@ $< 

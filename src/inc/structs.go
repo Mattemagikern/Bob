@@ -42,7 +42,7 @@ type Variable struct {
 
 var File_tree map[string]*File = make(map[string]*File)
 var Inc_tree map[string]*File = make(map[string]*File)
-var Objects map[string]*Object_file = make(map[string]*Object_file)
+var State map[string]*Object_file = make(map[string]*Object_file)
 var Recepies map[string]*Recepie = make(map[string]*Recepie)
 var Variables map[string]*Variable = make(map[string]*Variable)
 var Sf Suffix

@@ -7,6 +7,7 @@ import (
 	"inc"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func Execute(recepie string) (err error) {
@@ -60,7 +61,7 @@ func Build() (err error) {
 			continue
 		}
 		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
-		obj, ok := inc.Objects[file_name+inc.Build_cmd.Exstensions[1]]
+		obj, ok := inc.State[file_name+inc.Build_cmd.Exstensions[1]]
 		inc.Variables["<"] = &inc.Variable{"@", v.Path}
 		out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
 		inc.Variables["@"] = &inc.Variable{"<", out_path}
@@ -70,10 +71,11 @@ func Build() (err error) {
 				if err = shell(j); err != nil {
 					return err
 				}
-				/*TODO: ADD to state file/state map*/
+				inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 			}
 		} else if v.Timestamp.Sub(obj.Timestamp) != 0 {
 			fmt.Println(v.Timestamp.Sub(obj.Timestamp))
+			inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 		}
 	}
 	return
