@@ -56,32 +56,38 @@ func shell(s string) (err error) {
 }
 
 func Build() (err error) {
+	errors := make(chan error)
 	for k, v := range inc.File_tree {
 		if inc.Sf.Src.FindString(v.Path) == "" {
 			continue
 		}
-		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
-		obj, ok := inc.State[file_name+inc.Build_cmd.Exstensions[1]]
-		inc.Variables["<"] = &inc.Variable{"@", v.Path}
-		out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
-		inc.Variables["@"] = &inc.Variable{"<", out_path}
-		if ok != true {
-			for _, j := range inc.Build_cmd.Commands {
-				/*TODO: Goroutine shell, if error exit and cancel all other builds?*/
-				if err = shell(j); err != nil {
-					return err
-				}
-				inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
-			}
-		} else if obj.Timestamp.Sub(v.Timestamp) < 0 {
-			for _, j := range inc.Build_cmd.Commands {
-				/*TODO: Goroutine shell, if error exit and cancel all other builds?*/
-				if err = shell(j); err != nil {
-					return err
-				}
-				inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
-			}
+		go build(k, v, errors)
+	}
+	for range inc.File_tree {
+		x := <-errors
+		if x != nil {
+			return x
 		}
 	}
 	return
+}
+
+func build(k string, v *inc.File, errors chan error) {
+	file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
+	obj, ok := inc.State[file_name+inc.Build_cmd.Exstensions[1]]
+	inc.Variables["<"] = &inc.Variable{"@", v.Path}
+	out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
+	inc.Variables["@"] = &inc.Variable{"<", out_path}
+	if ok != true {
+		for _, j := range inc.Build_cmd.Commands {
+			errors <- shell(j)
+			inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
+		}
+	} else if obj.Timestamp.Sub(v.Timestamp) < 0 {
+		for _, j := range inc.Build_cmd.Commands {
+			errors <- shell(j)
+			inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
+		}
+	}
+	errors <- nil
 }

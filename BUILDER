@@ -13,7 +13,6 @@ Entry   = .
 
 all: stuff build
 	echo "Hello World!"
-	echo $CC $CFLAGS
 
 crawl:
 	echo $CC
@@ -23,6 +22,4 @@ stuff:
 	$CFLAGS += -DDEBUG
 
 ../MasterThesis/code/obj/%.o:%.c
-	echo $@
-	echo $<
 	$CC $CFLAGS -c -o $@ $< 
