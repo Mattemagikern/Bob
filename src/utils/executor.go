@@ -5,6 +5,7 @@ import (
 	"inc"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -31,6 +32,7 @@ func Execute(recepie string) (err error) {
 	}
 	for _, str := range inc.Recepies[recepie].Commands {
 		if err = shell(str); err != nil {
+			return err
 		}
 
 	}
@@ -55,39 +57,49 @@ func shell(s string) (err error) {
 
 func Build() (err error) {
 	errors := make(chan error)
-	str := make(chan string)
+	obj_chan := make(chan *inc.Object_file)
+	names := make(chan string)
 	for k, v := range inc.File_tree {
 		if inc.Sf.Src.FindString(v.Path) == "" {
 			continue
 		}
-		go build(k, v, str, errors)
+		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
+		out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
+		inc.Variables["Objects"].Expression += " " + inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
+		obj := inc.State[file_name+inc.Build_cmd.Exstensions[1]]
+		go build(v, out_path, obj, file_name, names, obj_chan, errors)
 	}
 	for range inc.File_tree {
-		obj := <-str
-		inc.Variables["Objects"].Expression += " " + obj
-		if err = <-errors; err != nil {
+		obj_file := <-obj_chan
+		inc.State[<-names] = obj_file
+		err = <-errors
+		if err != nil {
 			return
 		}
 	}
 	return
 }
 
-func build(k string, v *inc.File, objects chan string, errors chan error) {
-	file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
-	obj, ok := inc.State[file_name+inc.Build_cmd.Exstensions[1]]
-	inc.Variables["<"] = &inc.Variable{"@", v.Path}
-	out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
-	inc.Variables["@"] = &inc.Variable{"<", out_path}
-	objects <- out_path
-	if ok != true {
-		inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
+var name *regexp.Regexp = regexp.MustCompile(`($@)`)
+var path *regexp.Regexp = regexp.MustCompile(`($<)`)
+
+func build(v *inc.File, out_path string, obj *inc.Object_file, file_name string, names chan string, obj_chan chan *inc.Object_file, errors chan error) {
+	if obj == nil || obj.Timestamp.Sub(v.Timestamp) < 0 {
+		obj_chan <- &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
+		names <- file_name
 		for _, j := range inc.Build_cmd.Commands {
-			errors <- shell(j)
+			j = strings.Replace(j, "$@", out_path, -1)
+			j = strings.Replace(j, "$<", v.Path, -1)
+			if err := shell(j); err != nil {
+				fmt.Println(err)
+				errors <- err
+				return
+			}
 		}
-	} else if obj.Timestamp.Sub(v.Timestamp) < 0 {
-		for _, j := range inc.Build_cmd.Commands {
-			errors <- shell(j)
-		}
+		errors <- nil
+		return
 	}
+	names <- ""
+	obj_chan <- nil
 	errors <- nil
 }
