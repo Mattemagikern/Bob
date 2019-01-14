@@ -5,9 +5,9 @@ search {
 	include_pattern (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
 }
 
-CC      = clang
-dep     = -I../MasterThesis/code/inc
-CFLAGS   = -Wall
+CC      = gcc
+dep     = -I../MasterThesis/code/inc -I../MasterThesis/code/inc/pkg -I../MasterThesis/code/test -I./test/testvector
+CFLAGS   = -Wall -Wextra -std=c99 -Wno-format -Wno-parentheses -Wno-empty-body -DROHC_UDP
 CFLAGS  += $dep
 Entry   = .
 

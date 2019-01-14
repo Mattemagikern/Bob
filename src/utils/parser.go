@@ -1,9 +1,14 @@
 package utils
 
 import (
+	"encoding/gob"
 	"errors"
+	"fmt"
 	"inc"
+	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -99,4 +104,19 @@ func Substitute(v string) (str string, bo bool, err error) {
 		}
 	}
 	return str, bo, nil
+}
+
+func Parse_state() (err error) {
+	var f *os.File
+	if f, err = os.OpenFile(".state", os.O_RDONLY, 0644); err != nil {
+		return err
+	}
+	dec := gob.NewDecoder(f)
+	for err != io.EOF {
+		var obj inc.Object_file
+		err = dec.Decode(&obj)
+		inc.State[filepath.Base(obj.Path)] = &obj
+		fmt.Println(obj)
+	}
+	return
 }

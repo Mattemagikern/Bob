@@ -32,31 +32,33 @@ func main() {
 			fi.Close()
 		}
 	}
+	if err := utils.Parse_state(); err != nil {
+		fmt.Println(err)
+	}
+
 	for _, v := range os.Args[index:] {
 		err := utils.Execute(v)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	if _, err := os.Create(".state"); err == nil {
-		var state bytes.Buffer
-		enc := gob.NewEncoder(&state)
-		dec := gob.NewDecoder(&state)
+	if f, err := os.Create(".state"); err == nil {
+		var buffer bytes.Buffer
+		var enc *gob.Encoder = gob.NewEncoder(&buffer)
 		for _, v := range inc.State {
 			if err := enc.Encode(v); err != nil {
 				fmt.Println("Error encoding state, exits")
 				os.Exit(1)
 			}
-			fmt.Println(state.Bytes())
-			var object inc.Object_file
-
-			if err := dec.Decode(&object); err != nil {
-				fmt.Println("decode error:", err)
+			if _, err := f.Write(buffer.Bytes()); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
 			}
-			fmt.Printf("%s: {%s,%s}\n", object.Path, object.Flags, object.Timestamp)
+			fmt.Println(v)
+			buffer.Reset()
 		}
 	} else {
-		fmt.Println("Couldn't open/create state, exits")
+		fmt.Println("Couldn't create .state, exits")
 		fmt.Println(err)
 	}
 
