@@ -22,15 +22,15 @@ func main() {
 	if err := utils.DFS(); err != nil {
 
 	}
+
 	if strings.Compare(os.Args[1], "clean") == 0 {
-		index = 2
-		if fi, err := os.Create(".state"); err != nil {
+		if _, err := os.Create(".state"); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
-		} else {
-			fi.Close()
 		}
+		index = 2
 	}
+
 	if err := utils.Parse_state(); err != nil {
 		fmt.Println(err)
 	}

@@ -49,15 +49,17 @@ func shell(s string) (err error) {
 			return err.(*exec.ExitError)
 		}
 	}
-	return
+	return nil
 }
 
 func Build() (err error) {
 	errors := make(chan error)
+	var visited int
 	for k, v := range inc.File_tree {
 		if inc.Sf.Src.FindString(v.Path) == "" {
 			continue
 		}
+		visited++
 		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
 		object_name := file_name + inc.Build_cmd.Exstensions[1]
 		out_path := inc.Build_cmd.Exstensions[0] + object_name
@@ -66,11 +68,12 @@ func Build() (err error) {
 		go build(v, out_path, obj, &inc.Variables["CFLAGS"].Expression, errors)
 		inc.State[object_name] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 	}
-	for range inc.File_tree {
+	for visited != 0 {
 		err = <-errors
 		if err != nil {
 			return
 		}
+		visited--
 	}
 	return
 }
@@ -82,7 +85,6 @@ func build(v *inc.File, out_path string, obj *inc.Object_file, flags *string, er
 			j = strings.Replace(j, "$<", v.Path, -1)
 			if err := shell(j); err != nil {
 				errors <- err
-				return
 			}
 		}
 	}
