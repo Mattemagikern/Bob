@@ -1,10 +1,9 @@
 package utils
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"inc"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -16,13 +15,14 @@ func Execute(recepie string) (err error) {
 	}
 
 	for _, v := range inc.Recepies[recepie].Dependencies {
-		if strings.Compare(v, "build") == 0 {
-			err = Build()
+		if v == "build" {
+			if err = Build(); err != nil {
+				return
+			}
 		} else {
-			err = Execute(v)
-		}
-		if err != nil {
-			return
+			if err = Execute(v); err != nil {
+				return
+			}
 		}
 	}
 
@@ -30,7 +30,9 @@ func Execute(recepie string) (err error) {
 		inc.Recepies[recepie].Commands[indx] = strings.Trim(str, " \t")
 	}
 	for _, str := range inc.Recepies[recepie].Commands {
-		shell(str)
+		if err = shell(str); err != nil {
+		}
+
 	}
 	return
 }
@@ -38,55 +40,53 @@ func Execute(recepie string) (err error) {
 func shell(s string) (err error) {
 	var v string
 	var boo bool
-	var stdout, stderr bytes.Buffer
-	v, boo, err = Substitute(s)
+	v, boo, _ = Substitute(s)
 	if !boo {
 		fmt.Println(v)
 		a := strings.Fields(v)
 		cmd := exec.Command(a[0], a[1:]...)
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
+		cmd.Stderr = os.Stderr
 		if err = cmd.Run(); err != nil {
-			return errors.New(stderr.String())
+			return err.(*exec.ExitError)
 		}
-		stdout.Reset()
-		stderr.Reset()
 	}
-	return
+	return nil
 }
 
 func Build() (err error) {
 	errors := make(chan error)
+	str := make(chan string)
 	for k, v := range inc.File_tree {
 		if inc.Sf.Src.FindString(v.Path) == "" {
 			continue
 		}
-		go build(k, v, errors)
+		go build(k, v, str, errors)
 	}
 	for range inc.File_tree {
-		x := <-errors
-		if x != nil {
-			return x
+		obj := <-str
+		inc.Variables["Objects"].Expression += " " + obj
+		if err = <-errors; err != nil {
+			return
 		}
 	}
 	return
 }
 
-func build(k string, v *inc.File, errors chan error) {
+func build(k string, v *inc.File, objects chan string, errors chan error) {
 	file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
 	obj, ok := inc.State[file_name+inc.Build_cmd.Exstensions[1]]
 	inc.Variables["<"] = &inc.Variable{"@", v.Path}
 	out_path := inc.Build_cmd.Exstensions[0] + file_name + inc.Build_cmd.Exstensions[1]
 	inc.Variables["@"] = &inc.Variable{"<", out_path}
+	objects <- out_path
 	if ok != true {
+		inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 		for _, j := range inc.Build_cmd.Commands {
 			errors <- shell(j)
-			inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 		}
 	} else if obj.Timestamp.Sub(v.Timestamp) < 0 {
 		for _, j := range inc.Build_cmd.Commands {
 			errors <- shell(j)
-			inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 		}
 	}
 	errors <- nil

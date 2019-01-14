@@ -29,8 +29,6 @@ func Parse_builder() (err error) {
 	for _, element := range s {
 		element := strings.Fields(element)
 		switch element[0] {
-		case "objects":
-			inc.Sf.Objects = regexp.MustCompile(element[1])
 		case "src":
 			inc.Sf.Src = regexp.MustCompile(element[1])
 		case "inc":
@@ -61,7 +59,7 @@ func Parse_builder() (err error) {
 		}
 	}
 
-	if inc.Sf.Inc == nil || inc.Sf.Src == nil || inc.Sf.Objects == nil || inc.Sf.Inc_pattern == nil {
+	if inc.Sf.Inc == nil || inc.Sf.Src == nil || inc.Sf.Inc_pattern == nil {
 		err = errors.New("Suffixes: objecs, srcs or, inc were not found")
 	}
 
