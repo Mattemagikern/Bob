@@ -23,7 +23,6 @@ func main() {
 
 	}
 	if strings.Compare(os.Args[1], "clean") == 0 {
-		fmt.Println("clean!")
 		index = 2
 		if fi, err := os.Create(".state"); err != nil {
 			fmt.Println(err)
@@ -54,7 +53,6 @@ func main() {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			fmt.Println(v)
 			buffer.Reset()
 		}
 	} else {

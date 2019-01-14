@@ -73,9 +73,14 @@ func Build() (err error) {
 				}
 				inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 			}
-		} else if v.Timestamp.Sub(obj.Timestamp) != 0 {
-			fmt.Println(v.Timestamp.Sub(obj.Timestamp))
-			inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
+		} else if obj.Timestamp.Sub(v.Timestamp) < 0 {
+			for _, j := range inc.Build_cmd.Commands {
+				/*TODO: Goroutine shell, if error exit and cancel all other builds?*/
+				if err = shell(j); err != nil {
+					return err
+				}
+				inc.State[file_name+inc.Build_cmd.Exstensions[1]] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
+			}
 		}
 	}
 	return

@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/gob"
 	"errors"
-	"fmt"
 	"inc"
 	"io"
 	"io/ioutil"
@@ -116,7 +115,7 @@ func Parse_state() (err error) {
 		var obj inc.Object_file
 		err = dec.Decode(&obj)
 		inc.State[filepath.Base(obj.Path)] = &obj
-		fmt.Println(obj)
 	}
+	err = nil
 	return
 }
