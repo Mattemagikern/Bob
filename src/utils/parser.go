@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -17,6 +18,7 @@ var recepies *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?
 var suffixes *regexp.Regexp = regexp.MustCompile(`(?m)^search\s+\{(.|\n)*^\}`)
 var substitute *regexp.Regexp = regexp.MustCompile(`(?s)(.*)\$([^\s]*)`)
 var builder *regexp.Regexp = regexp.MustCompile(`(?m)(.*)%(.*):\s?%(.*)$\s((?:\t.*\n?)*)`)
+var cmds *regexp.Regexp = regexp.MustCompile(`(?:^\s?([^\s]*)\s?)=\s?\$\((.*)\)`)
 
 func Parse_builder() (err error) {
 	var dat []byte
@@ -76,7 +78,13 @@ func Substitute(v string) (str string, bo bool, err error) {
 	if tmp != nil {
 		bo = true
 		name = tmp[1]
-		expression = tmp[2]
+		if cmd := cmds.FindStringSubmatch(tmp[0]); cmd != nil {
+			cmd = strings.Fields(cmd[2])
+			tmps, _ := exec.Command(cmd[0], cmd[1:]...).Output()
+			expression = string(tmps)
+		} else {
+			expression = tmp[2]
+		}
 		if strings.Contains(str, "+=") {
 			inc.Variables[name].Expression += " " + expression
 		} else if strings.Contains(str, "-=") {
