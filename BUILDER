@@ -11,7 +11,6 @@ CFLAGS   = -Wall -Wextra -std=c99 -Wno-format -Wno-parentheses -Wno-empty-body -
 CFLAGS  += $dep
 
 all: build client server 
-	echo "Done!"
 
 server:
 	$CC $CFLAGS -o server $Objects ../MasterThesis/code/test/server.c

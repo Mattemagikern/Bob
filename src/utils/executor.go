@@ -65,7 +65,7 @@ func Build() (err error) {
 		out_path := inc.Build_cmd.Exstensions[0] + object_name
 		inc.Variables["Objects"].Expression += " " + out_path
 		obj := inc.State[object_name]
-		go build(v, out_path, obj, &inc.Variables["CFLAGS"].Expression, errors)
+		go build(v, &out_path, obj, &inc.Variables["CFLAGS"].Expression, errors)
 		inc.State[object_name] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 	}
 	for visited != 0 {
@@ -78,10 +78,10 @@ func Build() (err error) {
 	return
 }
 
-func build(v *inc.File, out_path string, obj *inc.Object_file, flags *string, errors chan error) {
-	if obj == nil || obj.Timestamp.Sub(v.Timestamp) < 0 || obj.Flags != *flags {
+func build(v *inc.File, out_path *string, obj *inc.Object_file, flags *string, errors chan error) {
+	if obj == nil || obj.Timestamp.Sub(v.Timestamp) < 0 || obj.Flags != *flags || check_dependencies(v, obj) {
 		for _, j := range inc.Build_cmd.Commands {
-			j = strings.Replace(j, "$@", out_path, -1)
+			j = strings.Replace(j, "$@", *out_path, -1)
 			j = strings.Replace(j, "$<", v.Path, -1)
 			if err := shell(j); err != nil {
 				errors <- err
@@ -89,4 +89,17 @@ func build(v *inc.File, out_path string, obj *inc.Object_file, flags *string, er
 		}
 	}
 	errors <- nil
+}
+
+func check_dependencies(v *inc.File, obj *inc.Object_file) bool {
+	for _, dep := range v.Inc {
+		include, ok := inc.File_tree[dep]
+		if ok && obj.Timestamp.Sub(include.Timestamp) < 0 {
+			return true
+		}
+		if ok && check_dependencies(include, obj) {
+			return true
+		}
+	}
+	return false
 }

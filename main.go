@@ -20,7 +20,8 @@ func main() {
 
 	filepath.Walk("../MasterThesis/code", utils.Walk())
 	if err := utils.DFS(); err != nil {
-
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	if strings.Compare(os.Args[1], "clean") == 0 {
