@@ -13,12 +13,14 @@ import (
 	"strings"
 )
 
-var variables *regexp.Regexp = regexp.MustCompile(`(?m)^(?:\$)?(\S*)\s*(?: =|\+=|\-=)(?:\s*(.*))`)
+var variables *regexp.Regexp = regexp.MustCompile(`(?m)^\$?(\S*)\s*(=|\+=|\-=)(?:\s*(.*))`)
 var recepies *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?)*)`)
 var suffixes *regexp.Regexp = regexp.MustCompile(`(?m)^search\s+\{(.|\n)*^\}`)
 var substitute *regexp.Regexp = regexp.MustCompile(`(?s)(.*)\$([^\s]*)`)
 var builder *regexp.Regexp = regexp.MustCompile(`(?m)(.*)%(.*):\s?%(.*)$\s((?:\t.*\n?)*)`)
 var cmds *regexp.Regexp = regexp.MustCompile(`(?:^\s?([^\s]*)\s?)=\s?\$\((.*)\)`)
+var test *regexp.Regexp = regexp.MustCompile(`(?:\$\(.*\)|[^\s]\S*)`)
+var wow *regexp.Regexp = regexp.MustCompile(`\$\((.*)\)`)
 
 func Parse_builder() (err error) {
 	var dat []byte
@@ -55,10 +57,11 @@ func Parse_builder() (err error) {
 			inc.Recepies[name] = &inc.Recepie{name, ingredients, cmds}
 		}
 	}
+
 	for _, v := range variables.FindAllString(string(dat), -1) {
-		if _, _, err = Substitute(v); err != nil {
-			panic("Could not substitute")
-		}
+		tmp := variables.FindStringSubmatch(v)
+		ama, _ := Sub_temp(tmp[3])
+		Update_vars(tmp[1], tmp[2], ama)
 	}
 
 	if inc.Sf.Inc == nil || inc.Sf.Src == nil || inc.Sf.Inc_pattern == nil {
@@ -68,47 +71,42 @@ func Parse_builder() (err error) {
 	return
 }
 
-func Substitute(v string) (str string, bo bool, err error) {
-	var tmp []string
-	var name string
-	var expression string
-	str = v
-	bo = false
-	tmp = variables.FindStringSubmatch(v)
-	if tmp != nil {
-		bo = true
-		name = tmp[1]
-		if cmd := cmds.FindStringSubmatch(tmp[0]); cmd != nil {
-			cmd = strings.Fields(cmd[2])
-			tmps, _ := exec.Command(cmd[0], cmd[1:]...).Output()
-			expression = string(tmps)
-		} else {
-			expression = tmp[2]
-		}
-		if strings.Contains(str, "+=") {
-			inc.Variables[name].Expression += " " + expression
-		} else if strings.Contains(str, "-=") {
-			inc.Variables[name].Expression = strings.Trim(inc.Variables[name].Expression, expression)
-		} else {
-			inc.Variables[name] = &inc.Variable{name, expression}
-		}
-		if strings.Contains(inc.Variables[name].Expression, "$") {
-			for _, v := range strings.Fields(inc.Variables[name].Expression)[1:] {
-				if strings.Contains(v, "$") {
-					inc.Variables[name].Expression = strings.Replace(inc.Variables[name].Expression, v, substitute.ReplaceAllString(v, "$1"+inc.Variables[substitute.FindStringSubmatch(v)[2]].Expression), -1)
-				}
-			}
-		}
-	} else {
-		if strings.Contains(str, "$") {
-			for _, v := range strings.Fields(str) {
-				if strings.Contains(v, "$") {
-					str = strings.Trim(strings.Replace(str, v, substitute.ReplaceAllString(v, "${1}"+inc.Variables[substitute.FindStringSubmatch(v)[2]].Expression), -1), " \t")
-				}
-			}
+func Sub_temp(v string) (str string, err error) {
+	if !strings.Contains(v, "$") {
+		return v, nil
+	}
+	var tmps []byte
+	for _, value := range test.FindAllString(v, -1) {
+		elm, ok := inc.Variables[value[1:]]
+		switch {
+		case strings.Contains(value, "$("):
+			cmd := wow.FindStringSubmatch(v)
+			cmd = strings.Fields(cmd[1])
+			tmps, err = exec.Command(cmd[0], cmd[1:]...).Output()
+			str += " " + string(tmps)
+
+		case value[0] == '$' && ok:
+			str += " " + elm.Expression
+
+		default:
+			str += " " + value
 		}
 	}
-	return str, bo, nil
+	return
+}
+
+func Update_vars(name string, delimiter string, str string) (err error) {
+	switch {
+	case delimiter == "+=":
+		inc.Variables[name].Expression += " " + str
+	case delimiter == "-=":
+		inc.Variables[name].Expression = strings.Trim(inc.Variables[name].Expression, str)
+	case delimiter == "=":
+		inc.Variables[name] = &inc.Variable{name, str}
+	default:
+		err = errors.New("Update vars wrong input")
+	}
+	return
 }
 
 func Parse_state() (err error) {

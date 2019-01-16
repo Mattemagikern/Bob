@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"inc"
 	"os"
@@ -37,16 +38,22 @@ func Execute(recepie string) (err error) {
 	}
 	return
 }
-
 func shell(s string) (err error) {
-	v, boo, _ := Substitute(s)
-	if !boo {
-		fmt.Println(v)
-		a := strings.Fields(v)
-		cmd := exec.Command(a[0], a[1:]...)
-		cmd.Stderr = os.Stderr
-		if err = cmd.Run(); err != nil {
-			return err.(*exec.ExitError)
+	var str string
+	if tmp := variables.FindStringSubmatch(s); tmp != nil {
+		str, err = Sub_temp(tmp[3])
+		Update_vars(tmp[1], tmp[2], str)
+		return nil
+	}
+	str, err = Sub_temp(s)
+	a := strings.Fields(str)
+	cmd := exec.Command(a[0], a[1:]...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			fmt.Println(exitError)
+			return errors.New("Shell command faild")
 		}
 	}
 	return nil
