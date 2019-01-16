@@ -19,7 +19,6 @@ func main() {
 	if dat, err := ioutil.ReadFile("./BUILDER"); err == nil {
 		if err := parser.Parse_builder(string(dat)); err != nil {
 			fmt.Println("Error: ", err)
-			os.Exit(1)
 		}
 	} else {
 		panic("Could't open BUILDER, exits")

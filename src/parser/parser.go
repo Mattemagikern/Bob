@@ -15,28 +15,11 @@ import (
 
 var Variables *regexp.Regexp = regexp.MustCompile(`(?m)^\$?(\S*)\s*(=|\+=|\-=)(?:\s*(.*))`)
 var recepies *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?)*)`)
-var suffixes *regexp.Regexp = regexp.MustCompile(`(?m)^search\s+\{(.|\n)*^\}`)
-var substitute *regexp.Regexp = regexp.MustCompile(`(?s)(.*)\$([^\s]*)`)
 var builder *regexp.Regexp = regexp.MustCompile(`(?m)(.*)%(.*):\s?%(.*)$\s((?:\t.*\n?)*)`)
-var cmds *regexp.Regexp = regexp.MustCompile(`(?:^\s?([^\s]*)\s?)=\s?\$\((.*)\)`)
 var test *regexp.Regexp = regexp.MustCompile(`(?:\$\(.*\)|[^\s]\S*)`)
 var wow *regexp.Regexp = regexp.MustCompile(`\$\((.*)\)`)
 
 func Parse_builder(file string) (err error) {
-
-	s := strings.Split(suffixes.FindString(file), "\n")
-	for _, element := range s {
-		element := strings.Fields(element)
-		switch element[0] {
-		case "src":
-			inc.Sf.Src = regexp.MustCompile(element[1])
-		case "inc":
-			inc.Sf.Inc = regexp.MustCompile(element[1])
-		case "include_pattern":
-			inc.Sf.Inc_pattern = regexp.MustCompile(element[1])
-		}
-	}
-
 	for _, v := range recepies.FindAllString(file, -1) {
 		var tmp []string
 		if tmp = builder.FindStringSubmatch(v); tmp != nil {
@@ -49,6 +32,9 @@ func Parse_builder(file string) (err error) {
 			ingredients := strings.Fields(tmp[2])
 			cmds := strings.Split(tmp[3], "\n")
 			cmds = cmds[:len(cmds)-1]
+			for i, v := range cmds {
+				cmds[i] = strings.Trim(v, "\t")
+			}
 			inc.Recepies[name] = &inc.Recepie{name, ingredients, cmds}
 		}
 	}
@@ -58,9 +44,24 @@ func Parse_builder(file string) (err error) {
 		ama, _ := Substitute(tmp[3])
 		Update_vars(tmp[1], tmp[2], ama)
 	}
+	if inc.Variables["src"] == nil {
+		fmt.Println("Missing regex pattern for src files, exits")
+		os.Exit(1)
+	}
+	inc.Sf.Src = regexp.MustCompile(inc.Variables["src"].Expression)
 
-	if inc.Sf.Inc == nil || inc.Sf.Src == nil || inc.Sf.Inc_pattern == nil {
-		err = errors.New("Suffixes: objecs, srcs or, inc were not found")
+	if inc.Variables["inc"] != nil {
+		inc.Sf.Inc = regexp.MustCompile(inc.Variables["inc"].Expression)
+	} else {
+		inc.Sf.Inc = regexp.MustCompile(`$^`)
+	}
+
+	if inc.Variables["inc_pattern"] != nil {
+		inc.Sf.Inc_pattern = regexp.MustCompile(inc.Variables["inc_pattern"].Expression)
+		err = errors.New("Missing inc or inc_pattern, This will not garuantee the correctness of your object files.")
+	} else {
+		inc.Sf.Inc_pattern = regexp.MustCompile(`$^`)
+		err = errors.New("Missing inc or inc_pattern, This will not garuantee the correctness of your object files.")
 	}
 
 	return
@@ -89,8 +90,6 @@ func Substitute(v string) (str string, err error) {
 		str += " "
 	}
 	str = strings.Trim(str, " ")
-
-	fmt.Println(str)
 	return
 }
 
@@ -105,6 +104,15 @@ func Update_vars(name string, delimiter string, str string) (err error) {
 	default:
 		err = errors.New("Update vars wrong input")
 	}
+	switch {
+	case name == "inc":
+		inc.Sf.Inc = regexp.MustCompile(inc.Variables[name].Expression)
+	case name == "src":
+		inc.Sf.Src = regexp.MustCompile(inc.Variables[name].Expression)
+	case name == "inc_pattern":
+		inc.Sf.Inc_pattern = regexp.MustCompile(inc.Variables[name].Expression)
+	}
+
 	return
 }
 

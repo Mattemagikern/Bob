@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"inc"
 	"testing"
 )
@@ -62,7 +61,6 @@ debug:
 	$CC $CFLAGS -c -o $@ $<`
 	Parse_builder(builder)
 	if inc.Variables["CC"].Expression != "gcc" {
-		fmt.Println(builder)
-		t.Errorf("stuff")
+		t.Errorf("Builder parsing failed")
 	}
 }

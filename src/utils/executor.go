@@ -28,13 +28,9 @@ func Execute(recepie string) (err error) {
 		}
 	}
 
-	for indx, str := range inc.Recepies[recepie].Commands {
-		inc.Recepies[recepie].Commands[indx] = strings.Trim(str, " \t")
-	}
-
 	for _, str := range inc.Recepies[recepie].Commands {
 		if err = shell(str); err != nil {
-			return err
+			break
 		}
 	}
 	return
