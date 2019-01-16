@@ -6,6 +6,7 @@ import (
 	"inc"
 	"os"
 	"os/exec"
+	"parser"
 	"strings"
 	"time"
 )
@@ -40,12 +41,12 @@ func Execute(recepie string) (err error) {
 }
 func shell(s string) (err error) {
 	var str string
-	if tmp := variables.FindStringSubmatch(s); tmp != nil {
-		str, err = Sub_temp(tmp[3])
-		Update_vars(tmp[1], tmp[2], str)
+	if tmp := parser.Variables.FindStringSubmatch(s); tmp != nil {
+		str, err = parser.Substitute(tmp[3])
+		parser.Update_vars(tmp[1], tmp[2], str)
 		return nil
 	}
-	str, err = Sub_temp(s)
+	str, err = parser.Substitute(s)
 	a := strings.Fields(str)
 	cmd := exec.Command(a[0], a[1:]...)
 	cmd.Stderr = os.Stderr

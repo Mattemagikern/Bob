@@ -1,11 +1,11 @@
-package utils
+package parser
 
 import (
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"inc"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-var variables *regexp.Regexp = regexp.MustCompile(`(?m)^\$?(\S*)\s*(=|\+=|\-=)(?:\s*(.*))`)
+var Variables *regexp.Regexp = regexp.MustCompile(`(?m)^\$?(\S*)\s*(=|\+=|\-=)(?:\s*(.*))`)
 var recepies *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?)*)`)
 var suffixes *regexp.Regexp = regexp.MustCompile(`(?m)^search\s+\{(.|\n)*^\}`)
 var substitute *regexp.Regexp = regexp.MustCompile(`(?s)(.*)\$([^\s]*)`)
@@ -22,14 +22,9 @@ var cmds *regexp.Regexp = regexp.MustCompile(`(?:^\s?([^\s]*)\s?)=\s?\$\((.*)\)`
 var test *regexp.Regexp = regexp.MustCompile(`(?:\$\(.*\)|[^\s]\S*)`)
 var wow *regexp.Regexp = regexp.MustCompile(`\$\((.*)\)`)
 
-func Parse_builder() (err error) {
-	var dat []byte
+func Parse_builder(file string) (err error) {
 
-	if dat, err = ioutil.ReadFile("./BUILDER"); err != nil {
-		panic("Could't open BUILDER, exits")
-	}
-
-	s := strings.Split(suffixes.FindString(string(dat)), "\n")
+	s := strings.Split(suffixes.FindString(file), "\n")
 	for _, element := range s {
 		element := strings.Fields(element)
 		switch element[0] {
@@ -42,7 +37,7 @@ func Parse_builder() (err error) {
 		}
 	}
 
-	for _, v := range recepies.FindAllString(string(dat), -1) {
+	for _, v := range recepies.FindAllString(file, -1) {
 		var tmp []string
 		if tmp = builder.FindStringSubmatch(v); tmp != nil {
 			cmds := strings.Split(tmp[4], "\n")
@@ -58,9 +53,9 @@ func Parse_builder() (err error) {
 		}
 	}
 
-	for _, v := range variables.FindAllString(string(dat), -1) {
-		tmp := variables.FindStringSubmatch(v)
-		ama, _ := Sub_temp(tmp[3])
+	for _, v := range Variables.FindAllString(file, -1) {
+		tmp := Variables.FindStringSubmatch(v)
+		ama, _ := Substitute(tmp[3])
 		Update_vars(tmp[1], tmp[2], ama)
 	}
 
@@ -71,7 +66,7 @@ func Parse_builder() (err error) {
 	return
 }
 
-func Sub_temp(v string) (str string, err error) {
+func Substitute(v string) (str string, err error) {
 	if !strings.Contains(v, "$") {
 		return v, nil
 	}
@@ -83,15 +78,19 @@ func Sub_temp(v string) (str string, err error) {
 			cmd := wow.FindStringSubmatch(v)
 			cmd = strings.Fields(cmd[1])
 			tmps, err = exec.Command(cmd[0], cmd[1:]...).Output()
-			str += " " + string(tmps)
+			str += string(tmps)
 
 		case value[0] == '$' && ok:
-			str += " " + elm.Expression
+			str += elm.Expression
 
 		default:
-			str += " " + value
+			str += value
 		}
+		str += " "
 	}
+	str = strings.Trim(str, " ")
+
+	fmt.Println(str)
 	return
 }
 

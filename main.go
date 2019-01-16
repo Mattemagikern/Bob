@@ -5,7 +5,9 @@ import (
 	"encoding/gob"
 	"fmt"
 	"inc"
+	"io/ioutil"
 	"os"
+	"parser"
 	"path/filepath"
 	"strings"
 	"utils"
@@ -13,9 +15,14 @@ import (
 
 func main() {
 	var index int = 1
-	if err := utils.Parse_builder(); err != nil {
-		fmt.Println("Error: ", err)
-		os.Exit(1)
+
+	if dat, err := ioutil.ReadFile("./BUILDER"); err == nil {
+		if err := parser.Parse_builder(string(dat)); err != nil {
+			fmt.Println("Error: ", err)
+			os.Exit(1)
+		}
+	} else {
+		panic("Could't open BUILDER, exits")
 	}
 
 	filepath.Walk("../MasterThesis/code", utils.Walk())
@@ -32,7 +39,7 @@ func main() {
 		index = 2
 	}
 
-	if err := utils.Parse_state(); err != nil {
+	if err := parser.Parse_state(); err != nil {
 		fmt.Println(err)
 	}
 
