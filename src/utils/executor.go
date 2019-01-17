@@ -30,7 +30,7 @@ func Execute(recepie string) (err error) {
 
 	for _, str := range inc.Recepies[recepie].Commands {
 		if err = shell(str); err != nil {
-			break
+			return err
 		}
 	}
 	return

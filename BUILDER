@@ -1,6 +1,6 @@
-/inc = .*\/inc\/(.*)\.h$
+inc = .*\/inc\/(.*)\.h$
 src = .*\/src\/(.*)\.c$
-/inc_pattern = (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
+inc_pattern = (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
 
 CC      = gcc
 dep     =  -I../MasterThesis/code/inc -I../MasterThesis/code/inc/pkg -I../MasterThesis/code/test -I../MasterThesis/code/test/testvector

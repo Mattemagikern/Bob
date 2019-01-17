@@ -24,7 +24,7 @@ func main() {
 		panic("Could't open BUILDER, exits")
 	}
 
-	filepath.Walk("../MasterThesis/code", utils.Walk())
+	filepath.Walk(".", utils.Walk())
 	if err := utils.DFS(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -46,6 +46,7 @@ func main() {
 		err := utils.Execute(v)
 		if err != nil {
 			fmt.Println(err)
+			os.Exit(1)
 		}
 	}
 	if f, err := os.Create(".state"); err == nil {
