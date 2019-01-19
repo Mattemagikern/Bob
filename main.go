@@ -26,14 +26,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	filepath.Walk("../MasterThesis/code", utils.Walk())
+	filepath.Walk("../MasterThesis/code", Walk())
 	if err := utils.DFS(); err != nil {
 		fmt.Println("main: " + err.Error())
 		os.Exit(1)
 	}
+
 	if len(os.Args) < 2 {
 		os.Exit(1)
 	}
+
 	if strings.Compare(os.Args[1], "clean") == 0 {
 		if _, err := os.Create(".state"); err != nil {
 			fmt.Println("main: " + err.Error())
@@ -71,4 +73,24 @@ func main() {
 		os.Exit(1)
 	}
 
+}
+
+func Walk() filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		time := info.ModTime()
+		name := info.Name()
+		var includes []string
+		if inc.Sf.Src.MatchString(path) || inc.Sf.Inc.MatchString(path) {
+			data, err := ioutil.ReadFile(path)
+			if err != nil {
+				panic(err)
+			}
+			tmp := inc.Sf.Inc_pattern.FindAllStringSubmatch(string(data), -1)
+			for _, e := range tmp {
+				includes = append(includes, e[1])
+			}
+			inc.File_tree[name] = &inc.File{Path: path, Inc: includes, Timestamp: time}
+		}
+		return nil
+	}
 }
