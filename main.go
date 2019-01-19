@@ -22,7 +22,8 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		panic("Could't open BUILDER, exits")
+		fmt.Println("main: ", err.Error())
+		os.Exit(1)
 	}
 
 	filepath.Walk("../MasterThesis/code", utils.Walk())

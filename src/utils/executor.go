@@ -38,6 +38,7 @@ func Execute(recepie string) (err error) {
 	}
 	return
 }
+
 func shell(s string) (err error) {
 	var str string
 	if tmp := parser.Variables.FindStringSubmatch(s); tmp != nil {
