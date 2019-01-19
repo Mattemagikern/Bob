@@ -7,12 +7,12 @@ import (
 )
 
 func DFS() (err error) {
-	for k, _ := range inc.Recepies {
+	for k := range inc.Recepies {
 		visited := make(map[string]bool)
 		for _, dep := range inc.Recepies[k].Dependencies {
 			visited[dep] = true
 			if dive(visited, k, dep) {
-				err = errors.New("Circular Dependencie in builder")
+				err = errors.New("DFS: Circular Dependencie in builder")
 				return
 			}
 		}
@@ -27,7 +27,7 @@ func dive(visited map[string]bool, start string, latest string) bool {
 	}
 	for _, v := range inc.Recepies[latest].Dependencies {
 		if visited[v] == true {
-			panic("Circular dependencie!!")
+			return true
 		} else {
 			return dive(visited, start, v)
 		}

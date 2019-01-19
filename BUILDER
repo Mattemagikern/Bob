@@ -7,7 +7,7 @@ dep     =  -I../MasterThesis/code/inc -I../MasterThesis/code/inc/pkg -I../Master
 CFLAGS   = -Wall -Wextra -std=c99 -Wno-format -Wno-parentheses -Wno-empty-body -DROHC_UDP -pthread
 $CFLAGS  += $dep
 
-all: debug build server client
+all: build debug build server client
 	echo $LA
 
 server:
@@ -17,6 +17,8 @@ client:
 	$CC $CFLAGS -o client $Objects ../MasterThesis/code/test/client.c
 
 debug:
+	echo DEBUG
+	src = .*tests/.*\.c$
 	$LA = $(ls -la)
 	$CFLAGS += -DDEBUG
 

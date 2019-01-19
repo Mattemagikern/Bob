@@ -55,13 +55,11 @@ func Parse_builder(file string) (err error) {
 	} else {
 		inc.Sf.Inc = regexp.MustCompile(`$^`)
 	}
-
 	if inc.Variables["inc_pattern"] != nil {
 		inc.Sf.Inc_pattern = regexp.MustCompile(inc.Variables["inc_pattern"].Expression)
-		err = errors.New("Missing inc or inc_pattern, This will not garuantee the correctness of your object files.")
 	} else {
 		inc.Sf.Inc_pattern = regexp.MustCompile(`$^`)
-		err = errors.New("Missing inc or inc_pattern, This will not garuantee the correctness of your object files.")
+		err = errors.New("parser: Parse_builder: Missing inc or inc_pattern, This will not garuantee the correctness of your object files.")
 	}
 
 	return
@@ -79,6 +77,9 @@ func Substitute(v string) (str string, err error) {
 			cmd := wow.FindStringSubmatch(v)
 			cmd = strings.Fields(cmd[1])
 			tmps, err = exec.Command(cmd[0], cmd[1:]...).Output()
+			if err != nil {
+				err = errors.New("parser: Substitute: " + err.Error())
+			}
 			str += string(tmps)
 
 		case value[0] == '$' && ok:
@@ -102,7 +103,7 @@ func Update_vars(name string, delimiter string, str string) (err error) {
 	case delimiter == "=":
 		inc.Variables[name] = &inc.Variable{name, str}
 	default:
-		err = errors.New("Update vars wrong input")
+		err = errors.New("parser: Uptade_vars: Update vars wrong input")
 	}
 	switch {
 	case name == "inc":
@@ -119,7 +120,8 @@ func Update_vars(name string, delimiter string, str string) (err error) {
 func Parse_state() (err error) {
 	var f *os.File
 	if f, err = os.OpenFile(".state", os.O_RDONLY, 0644); err != nil {
-		return err
+		err = errors.New("Parse_state" + err.Error())
+		return
 	}
 	dec := gob.NewDecoder(f)
 	for err != io.EOF {
@@ -127,6 +129,5 @@ func Parse_state() (err error) {
 		err = dec.Decode(&obj)
 		inc.State[filepath.Base(obj.Path)] = &obj
 	}
-	err = nil
-	return
+	return nil
 }

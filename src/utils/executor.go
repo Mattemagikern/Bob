@@ -19,10 +19,12 @@ func Execute(recepie string) (err error) {
 	for _, v := range inc.Recepies[recepie].Dependencies {
 		if v == "build" {
 			if err = Build(); err != nil {
+				err = errors.New("utils: Execute: " + err.Error())
 				return
 			}
 		} else {
 			if err = Execute(v); err != nil {
+				err = errors.New("utils: Execute: " + err.Error())
 				return
 			}
 		}
@@ -30,6 +32,7 @@ func Execute(recepie string) (err error) {
 
 	for _, str := range inc.Recepies[recepie].Commands {
 		if err = shell(str); err != nil {
+			err = errors.New("utils: Execute: " + err.Error())
 			return err
 		}
 	}
@@ -50,14 +53,14 @@ func shell(s string) (err error) {
 	if err := cmd.Run(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Println(exitError)
-			return errors.New("Shell command faild")
+			return errors.New("shell: " + err.Error())
 		}
 	}
 	return nil
 }
 
 func Build() (err error) {
-	errors := make(chan error)
+	errs := make(chan error, 10)
 	var visited int
 	for k, v := range inc.File_tree {
 		if inc.Sf.Src.FindString(v.Path) == "" {
@@ -67,14 +70,17 @@ func Build() (err error) {
 		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
 		object_name := file_name + inc.Build_cmd.Exstensions[1]
 		out_path := inc.Build_cmd.Exstensions[0] + object_name
-		inc.Variables["Objects"].Expression += " " + out_path
+		if !strings.Contains(inc.Variables["Objects"].Expression, out_path) {
+			inc.Variables["Objects"].Expression += " " + out_path
+		}
 		obj := inc.State[object_name]
-		go build(v, &out_path, obj, &inc.Variables["CFLAGS"].Expression, errors)
+		go build(v, &out_path, obj, &inc.Variables["CFLAGS"].Expression, errs)
 		inc.State[object_name] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 	}
 	for visited != 0 {
-		err = <-errors
+		err = <-errs
 		if err != nil {
+			err = errors.New("Build: " + err.Error())
 			return
 		}
 		visited--
