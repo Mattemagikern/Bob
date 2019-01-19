@@ -11,56 +11,52 @@ import (
 	"time"
 )
 
-func Execute(recepie string) (err error) {
+func Execute(recepie string) error {
 	if inc.Recepies[recepie] == nil {
-		panic("Non valid recepie or ingredient")
+		return errors.New("Execute: Invalid Recepie")
 	}
 
 	for _, v := range inc.Recepies[recepie].Dependencies {
 		if v == "build" {
-			if err = Build(); err != nil {
-				err = errors.New("utils: Execute: " + err.Error())
-				return
+			if err := Build(); err != nil {
+				return errors.New("utils: Execute: " + err.Error())
 			}
 		} else {
-			if err = Execute(v); err != nil {
-				err = errors.New("utils: Execute: " + err.Error())
-				return
+			if err := Execute(v); err != nil {
+				return errors.New("utils: Execute: " + err.Error())
 			}
 		}
 	}
 
 	for _, str := range inc.Recepies[recepie].Commands {
-		if err = shell(str); err != nil {
-			err = errors.New("utils: Execute: " + err.Error())
-			return err
-		}
-	}
-	return
-}
-
-func shell(s string) (err error) {
-	var str string
-	if tmp := parser.Variables.FindStringSubmatch(s); tmp != nil {
-		str, err = parser.Substitute(tmp[3])
-		parser.Update_vars(tmp[1], tmp[2], str)
-		return nil
-	}
-	str, err = parser.Substitute(s)
-	a := strings.Fields(str)
-	cmd := exec.Command(a[0], a[1:]...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	if err := cmd.Run(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Println(exitError)
-			return errors.New("shell: " + err.Error())
+		if err := shell(str); err != nil {
+			return errors.New("utils: Execute: " + err.Error())
 		}
 	}
 	return nil
 }
 
-func Build() (err error) {
+func shell(s string) error {
+	if tmp := parser.Variables.FindStringSubmatch(s); tmp != nil {
+		str, _ := parser.Substitute(tmp[3])
+		parser.Update_vars(tmp[1], tmp[2], str)
+		return nil
+	}
+	if str, err := parser.Substitute(s); err == nil {
+		a := strings.Fields(str)
+		cmd := exec.Command(a[0], a[1:]...)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		if err := cmd.Run(); err != nil {
+			if _, ok := err.(*exec.ExitError); ok {
+				return errors.New("shell: " + err.Error())
+			}
+		}
+	}
+	return nil
+}
+
+func Build() error {
 	errs := make(chan error, 10)
 	var visited int
 	for k, v := range inc.File_tree {
@@ -76,17 +72,17 @@ func Build() (err error) {
 		}
 		obj := inc.State[object_name]
 		go build(v, &out_path, obj, &inc.Variables["CFLAGS"].Expression, errs)
+		fmt.Println(v)
 		inc.State[object_name] = &inc.Object_file{out_path, inc.Variables["CFLAGS"].Expression, time.Now()}
 	}
 	for visited != 0 {
-		err = <-errs
+		err := <-errs
 		if err != nil {
-			err = errors.New("Build: " + err.Error())
-			return
+			return errors.New("Build: " + err.Error())
 		}
 		visited--
 	}
-	return
+	return nil
 }
 
 func build(v *inc.File, out_path *string, obj *inc.Object_file, flags *string, errors chan error) {
