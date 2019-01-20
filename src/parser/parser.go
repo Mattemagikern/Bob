@@ -14,20 +14,20 @@ import (
 )
 
 var Variables *regexp.Regexp = regexp.MustCompile(`(?m)^\$?(\S*)\s*(=|\+=|\-=)(?:\s*(.*))`)
-var recepies *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?)*)`)
+var recipes *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?)*)`)
 var builder *regexp.Regexp = regexp.MustCompile(`(?m)(.*)%(.*):\s?%(.*)$\s((?:\t.*\n?)*)`)
 var test *regexp.Regexp = regexp.MustCompile(`(?:\$\(.*\)|[^\s]\S*)`)
 var wow *regexp.Regexp = regexp.MustCompile(`\$\((.*)\)`)
 
 func Parse_builder(file string) (err error) {
-	for _, v := range recepies.FindAllString(file, -1) {
+	for _, v := range recipes.FindAllString(file, -1) {
 		var tmp []string
 		if tmp = builder.FindStringSubmatch(v); tmp != nil {
 			cmds := strings.Split(tmp[4], "\n")
 			cmds = cmds[:len(cmds)-1]
 			inc.Build_cmd = &inc.Build{"build", tmp[1:4], cmds}
 		} else {
-			tmp = recepies.FindStringSubmatch(v)
+			tmp = recipes.FindStringSubmatch(v)
 			name := tmp[1]
 			ingredients := strings.Fields(tmp[2])
 			cmds := strings.Split(tmp[3], "\n")
@@ -35,7 +35,7 @@ func Parse_builder(file string) (err error) {
 			for i, v := range cmds {
 				cmds[i] = strings.Trim(v, "\t")
 			}
-			inc.Recepies[name] = &inc.Recepie{name, ingredients, cmds}
+			inc.Recipes[name] = &inc.Recipe{name, ingredients, cmds}
 		}
 	}
 

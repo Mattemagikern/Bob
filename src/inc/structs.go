@@ -24,15 +24,15 @@ type File struct {
 	Timestamp time.Time
 }
 
-type Recepie struct {
+type Recipe struct {
 	Name         string
 	Dependencies []string
 	Commands     []string
 }
 type Build struct {
-	Name        string
-	Exstensions []string
-	Commands    []string
+	Name       string
+	Extensions []string
+	Commands   []string
 }
 
 type Variable struct {
@@ -43,7 +43,7 @@ type Variable struct {
 var File_tree map[string]*File = make(map[string]*File)
 var Inc_tree map[string]*File = make(map[string]*File)
 var State map[string]*Object_file = make(map[string]*Object_file)
-var Recepies map[string]*Recepie = make(map[string]*Recepie)
+var Recipes map[string]*Recipe = make(map[string]*Recipe)
 var Sf Suffix
 var Build_cmd *Build
 

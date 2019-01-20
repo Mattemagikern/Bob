@@ -11,12 +11,12 @@ import (
 	"time"
 )
 
-func Execute(recepie string) error {
-	if inc.Recepies[recepie] == nil {
-		return errors.New("Execute: Invalid Recepie")
+func Execute(recipe string) error {
+	if inc.Recipes[recipe] == nil {
+		return errors.New("Execute: Invalid Recipe")
 	}
 
-	for _, v := range inc.Recepies[recepie].Dependencies {
+	for _, v := range inc.Recipes[recipe].Dependencies {
 		if v == "build" {
 			if err := Build(); err != nil {
 				return errors.New("utils: Execute: " + err.Error())
@@ -28,7 +28,7 @@ func Execute(recepie string) error {
 		}
 	}
 
-	for _, str := range inc.Recepies[recepie].Commands {
+	for _, str := range inc.Recipes[recipe].Commands {
 		if err := shell(str); err != nil {
 			return errors.New("utils: Execute: " + err.Error())
 		}
@@ -64,9 +64,9 @@ func Build() error {
 			continue
 		}
 		visited++
-		file_name := k[:len(k)-len(inc.Build_cmd.Exstensions[2])]
-		object_name := file_name + inc.Build_cmd.Exstensions[1]
-		out_path := inc.Build_cmd.Exstensions[0] + object_name
+		file_name := k[:len(k)-len(inc.Build_cmd.Extensions[2])]
+		object_name := file_name + inc.Build_cmd.Extensions[1]
+		out_path := inc.Build_cmd.Extensions[0] + object_name
 		if !strings.Contains(inc.Variables["Objects"].Expression, out_path) {
 			inc.Variables["Objects"].Expression += " " + out_path
 		}

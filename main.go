@@ -15,8 +15,7 @@ import (
 
 func main() {
 	var index int = 1
-
-	if dat, err := ioutil.ReadFile("./BUILDER"); err == nil {
+	if dat, err := ioutil.ReadFile("./Blueprint"); err == nil {
 		if err := parser.Parse_builder(string(dat)); err != nil {
 			fmt.Println("main: ", err.Error())
 			os.Exit(1)

@@ -14,7 +14,7 @@ should update. This will eliminate the use of `make clean` for example. If you
 are unsure or just want to clean you may do so, bob will turncate the .state
 file and rebuild all files accordingly.
 
-When Bob is executed it will try to find the BUILDER (./BUILDER) file. It
+When Bob is executed it will try to find the Blueprint (./Blueprint) file. It
 contains the **recepies**, **variabels** and the **build command**. 
 ## Builder file
 #### Variabels 
@@ -45,7 +45,20 @@ variable name. It can be used in congecture with the other operations (``+=``,
 To reference a variable prepend a ``$`` to the variable name. A variable name
 may not contain space or tabs.
 
-##### Recepies
+##### Special variables
+Inorder for Bob to find and to be able to find and map all dependencies you need
+to provide 3 regex patterns:
+
+* src - Provides a regex pattern that finds the source files (\*.c) you'd like the
+  builder command to execute.
+* inc - Provides a regex pattern that finds the include files (\*.h) your source
+  files depend upon.
+* inc\_pattern - Provides a regex pattern for how a include is declarated in the
+  source or include files.
+
+You only need to set ``src`` but to use all Bobs features I would advise you to
+apply the other two regex patterns. 
+##### Recipes
 ```make
 <recepie>: <ingredient> <ingredient> ...
 	commands
@@ -80,8 +93,8 @@ placement of the object file: ``obj/%.o:`` and the suffix of the source files:
 ``%.c``. The examples provided is for a C project but change the suffix to the
 appropriate language and it will work as inteded. 
 
-# A full example of a BUILDER file
-An example of an BUILDER file for a C project of mine:
+# A full example of a Blueprint
+An example of an Blueprint for a C project of mine:
 ```
 inc = .*\/inc\/(.*)\.h$
 src = .*\/src\/(.*)\.c$
