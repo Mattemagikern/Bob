@@ -1,6 +1,6 @@
 # Bob - The builder
 <p align="center">
-  <img src="Bob.jpg">
+  <img src="Bob.png">
 </p>
 
 Bob were created to keep track of the current status of my C projects. 
