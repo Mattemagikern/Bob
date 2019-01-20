@@ -1,0 +1,10 @@
+#!/bin/sh
+
+gofiles=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.go$')
+[ -z "$gofiles" ] && exit 0
+
+	$(gofmt -s -w $gofiles)
+$(git update-index --again)
+	if ! go vet ; then
+	exit 1
+	fi
