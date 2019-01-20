@@ -83,7 +83,7 @@ tools unnecessary.
 
 The commands that belong to a specific recipe starts with a \t directly under
 the recipe. The commands may be an update of a variable or a shell command.
-#### The build recepie
+#### The build recipe
 ```make
 obj/%.o:%.c
 	$CC $CFLAGS -c -o $@ $< 
@@ -123,3 +123,15 @@ debug:
 obj/%.o:%.c
 	$CC $CFLAGS -c -o $@ $< 
 ```
+
+
+# Installation
+After cloning the repository execute the following commands:
+```bash
+#! /usr/bin/env bash
+#Given that it is on a unix system. 
+
+go build
+sudo mv Bob /usr/bin/
+```
+now your shell should be able to find it.
