@@ -16,7 +16,7 @@ file and rebuild all files accordingly.
 
 When Bob is executed it will try to find the Blueprint (./Blueprint) file. It
 contains the **recepies**, **variabels** and the **build command**. 
-## Builder file
+## The Blueprint
 #### Variabels 
 ```make
 <variable_name> = <expression>
