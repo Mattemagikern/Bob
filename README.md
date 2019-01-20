@@ -1,4 +1,5 @@
 # Bob - The builder
+![Bob](https://github.com/Mattemagikern/Bob/blob/basic/Bob.png)
 
 Bob were created to keep track of the current status of my C projects. 
 The problem with conventional build systems like Make is that it is
