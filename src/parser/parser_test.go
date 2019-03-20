@@ -1,26 +1,43 @@
 package parser
 
 import (
+	"fmt"
 	"inc"
 	"testing"
 )
 
 func TestSubstitute(t *testing.T) {
 	inc.Variables = map[string]*inc.Variable{
-		"CC":    {"CC", "clang"},
-		"FLAGS": {"FLAGS", "-Wall"},
+		"CC":     {"CC", "clang"},
+		"CFLAGS": {"CFLAGS", "-Wall"},
 	}
-	exp := "clang hello stuff\n"
 	str, err := Substitute("$CC hello $(echo stuff)")
-	if str != exp || err != nil {
-		t.Errorf("Result:%s, Expected:%s\n", str, exp)
+	if err != nil {
+		fmt.Println(str)
+		t.Errorf(err.Error())
 	}
+	fmt.Println(str)
+
+	s := "export HELLO=$(pwd); $CC $CFLAGS -o server ../MasterThesis/code/test/server.c"
+	str, err = Substitute(s)
+	fmt.Println(str)
+	if err != nil {
+		t.Errorf("error:%s\n", err.Error())
+	}
+	fmt.Println(str)
+	s = "export GOOPATH=$(pwd); $CC -o bin/master master"
+	str, err = Substitute(s)
+	fmt.Println(str)
+	if err != nil {
+		t.Errorf("error:%s\n", err.Error())
+	}
+	fmt.Println(str)
 }
 
 func TestUpdate_vars(t *testing.T) {
 	inc.Variables = map[string]*inc.Variable{
-		"CC":    {"CC", "clang"},
-		"FLAGS": {"FLAGS", "-Wall"},
+		"CC":     {"CC", "clang"},
+		"CFLAGS": {"CFLAGS", "-Wall"},
 	}
 	expected := "clang NopeTown"
 	name := "CC"
@@ -48,7 +65,7 @@ all: debug build server client
 	echo $LA
 
 server:
-	$CC $CFLAGS -o server $Objects ../MasterThesis/code/test/server.c
+	export HELLO=$(pwd); $CC $CFLAGS -o server $Objects ../MasterThesis/code/test/server.c
 
 client:
 	$CC $CFLAGS -o client $Objects ../MasterThesis/code/test/client.c
