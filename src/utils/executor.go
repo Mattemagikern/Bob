@@ -37,21 +37,27 @@ func Execute(recipe string) error {
 }
 
 func shell(s string) error {
-	if tmp := parser.Variables.FindStringSubmatch(s); tmp != nil {
-		str, _ := parser.Substitute(tmp[3])
+	if tmp := parser.Variables.FindStringSubmatch(s); tmp != nil && s[0] == '$' {
+		str, err := parser.Substitute(tmp[3])
+		if err != nil {
+			return err
+		}
 		parser.Update_vars(tmp[1], tmp[2], str)
 		return nil
 	}
-	if str, err := parser.Substitute(s); err == nil {
-		a := strings.Fields(str)
-		cmd := exec.Command(a[0], a[1:]...)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		if err := cmd.Run(); err != nil {
-			if _, ok := err.(*exec.ExitError); ok {
-				return errors.New("shell: " + err.Error())
-			}
+
+	str, err := parser.Substitute(s)
+	if err != nil {
+		return errors.New("Failed to Substitute command")
+	}
+	cmd := exec.Command("bash", "-c", str)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			return errors.New("shell: " + err.Error())
 		}
+		return err
 	}
 	return nil
 }

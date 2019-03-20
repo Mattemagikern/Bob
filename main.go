@@ -76,6 +76,9 @@ func main() {
 
 func Walk() filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		time := info.ModTime()
 		name := info.Name()
 		var includes []string
