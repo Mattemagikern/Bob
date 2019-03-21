@@ -45,7 +45,7 @@ func shell(s string) error {
 		parser.Update_vars(tmp[1], tmp[2], str)
 		return nil
 	}
-
+	fmt.Println(s)
 	str, err := parser.Substitute(s)
 	if err != nil {
 		return errors.New("Failed to Substitute command")

@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	var index int = 1
+	var jobs = []string{}
 	if dat, err := ioutil.ReadFile("./Blueprint"); err == nil {
 		if err := parser.Parse_builder(string(dat)); err != nil {
 			fmt.Println("main: ", err.Error())
@@ -32,22 +32,24 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		os.Exit(1)
-	}
-
-	if strings.Compare(os.Args[1], "clean") == 0 {
-		if _, err := os.Create(".state"); err != nil {
-			fmt.Println("main: " + err.Error())
-			os.Exit(1)
+		jobs = append(jobs, "default")
+	} else {
+		if strings.Compare(os.Args[1], "clean") == 0 {
+			if _, err := os.Create(".state"); err != nil {
+				fmt.Println("main: " + err.Error())
+				os.Exit(1)
+			}
+		} else {
+			jobs = append(jobs, os.Args[1])
 		}
-		index = 2
+		jobs = append(jobs, os.Args[2:]...)
 	}
 
 	if err := parser.Parse_state(); err != nil {
 		fmt.Println(err)
 	}
 
-	for _, v := range os.Args[index:] {
+	for _, v := range jobs {
 		err := utils.Execute(v)
 		if err != nil {
 			fmt.Println("main: " + err.Error())

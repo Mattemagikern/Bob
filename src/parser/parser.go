@@ -36,6 +36,9 @@ func Parse_builder(file string) (err error) {
 				cmds[i] = strings.Trim(v, "\t")
 			}
 			inc.Recipes[name] = &inc.Recipe{name, ingredients, cmds}
+			if _, ok := inc.Recipes["default"]; !ok {
+				inc.Recipes["default"] = inc.Recipes[name]
+			}
 		}
 	}
 
