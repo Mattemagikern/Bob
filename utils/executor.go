@@ -3,10 +3,10 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"inc"
+	"github.com/Mattemagikern/Bob/inc"
+	"github.com/Mattemagikern/Bob/parser"
 	"os"
 	"os/exec"
-	"parser"
 	"strings"
 	"time"
 )

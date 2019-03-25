@@ -2,7 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"inc"
+	"github.com/Mattemagikern/Bob/utils"
 	"testing"
 )
 

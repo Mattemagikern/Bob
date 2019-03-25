@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"inc"
+	"github.com/Mattemagikern/Bob/inc"
+	"github.com/Mattemagikern/Bob/parser"
+	"github.com/Mattemagikern/Bob/utils"
 	"io/ioutil"
 	"os"
-	"parser"
 	"path/filepath"
 	"strings"
-	"utils"
 )
 
 func main() {

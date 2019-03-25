@@ -2,11 +2,14 @@ package utils
 
 import (
 	"errors"
-	"inc"
+	"github.com/Mattemagikern/Bob/inc"
 )
 
 func DFS() error {
 	for k := range inc.Recipes {
+		if _, ok := inc.Recipes[k]; !ok {
+			return errors.New("DFS: Missing Recepie " + k)
+		}
 		visited := make(map[string]bool)
 		for _, dep := range inc.Recipes[k].Dependencies {
 			visited[dep] = true

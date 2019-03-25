@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"inc"
+	"github.com/Mattemagikern/Bob/inc"
 	"io"
 	"os"
 	"os/exec"
