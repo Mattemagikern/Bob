@@ -12,6 +12,9 @@ func DFS() error {
 		}
 		visited := make(map[string]bool)
 		for _, dep := range inc.Recipes[k].Dependencies {
+			if _, ok := inc.Recipes[dep]; !ok {
+				return errors.New("DFS: Missing Recepie " + dep)
+			}
 			visited[dep] = true
 			if dive(visited, k, dep) {
 				return errors.New("DFS: Circular Dependency in builder")
