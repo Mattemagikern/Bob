@@ -6,35 +6,32 @@ import (
 )
 
 func DFS() error {
-	for k := range inc.Recipes {
-		if _, ok := inc.Recipes[k]; !ok {
-			return errors.New("DFS: Missing Recepie " + k)
-		}
-		visited := make(map[string]bool)
-		for _, dep := range inc.Recipes[k].Dependencies {
-			if _, ok := inc.Recipes[dep]; !ok {
+	for _, r := range inc.Recipes {
+		for _, dep := range r.Dependencies {
+			ingredient, ok := inc.Recipes[dep]
+			if !ok {
 				return errors.New("DFS: Missing Recepie " + dep)
 			}
-			visited[dep] = true
-			if dive(visited, k, dep) {
-				return errors.New("DFS: Circular Dependency in builder")
+			if err := dive(r, ingredient); err != nil {
+				return err
 			}
 		}
 	}
 	return nil
 }
 
-func dive(visited map[string]bool, start string, latest string) bool {
-	visited[latest] = true
-	if latest == "build" {
-		return false
-	}
-	for _, v := range inc.Recipes[latest].Dependencies {
-		if visited[v] == true {
-			return true
-		} else {
-			return dive(visited, start, v)
+func dive(start *inc.Recipe, latest *inc.Recipe) error {
+	for _, v := range latest.Dependencies {
+		ingredient, ok := inc.Recipes[v]
+		if !ok {
+			return errors.New("DFS: Missing Recepie " + v)
+		}
+		if ingredient == start {
+			return errors.New("DFS: Circular Dependency")
+		}
+		if err := dive(start, ingredient); err != nil {
+			return err
 		}
 	}
-	return false
+	return nil
 }

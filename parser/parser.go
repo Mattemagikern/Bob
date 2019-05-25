@@ -1,139 +1,126 @@
 package parser
 
 import (
-	"encoding/gob"
-	"errors"
-	"fmt"
-	"github.com/Mattemagikern/Bob/inc"
-	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
 
-var Variables *regexp.Regexp = regexp.MustCompile(`(?m)^\$?(\S*)\s*(=|\+=|\-=)(?:\s*(.*))`)
-var recipes *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*): ?(.*)\n((?:\t.*\n?)*)`)
-var builder *regexp.Regexp = regexp.MustCompile(`(?m)(.*)%(.*):\s?%(.*)$\s((?:\t.*\n?)*)`)
-var test *regexp.Regexp = regexp.MustCompile(`(?:\$\(.*\)|[^\s]\S*)`)
-var wow *regexp.Regexp = regexp.MustCompile(`\$\((.*)\)`)
-
-func Parse_builder(file string) (err error) {
-	for _, v := range recipes.FindAllString(file, -1) {
-		var tmp []string
-		if tmp = builder.FindStringSubmatch(v); tmp != nil {
-			cmds := strings.Split(tmp[4], "\n")
-			cmds = cmds[:len(cmds)-1]
-			inc.Build_cmd = &inc.Build{"build", tmp[1:4], cmds}
-		} else {
-			tmp = recipes.FindStringSubmatch(v)
-			name := tmp[1]
-			ingredients := strings.Fields(tmp[2])
-			cmds := strings.Split(tmp[3], "\n")
-			cmds = cmds[:len(cmds)-1]
-			for i, v := range cmds {
-				cmds[i] = strings.Trim(v, "\t")
-			}
-			inc.Recipes[name] = &inc.Recipe{name, ingredients, cmds}
-			if _, ok := inc.Recipes["default"]; !ok {
-				inc.Recipes["default"] = inc.Recipes[name]
-			}
-		}
-	}
-
-	for _, v := range Variables.FindAllString(file, -1) {
-		tmp := Variables.FindStringSubmatch(v)
-		ama, err := Substitute(tmp[3])
-		if err != nil {
-			return err
-		}
-		Update_vars(tmp[1], tmp[2], ama)
-	}
-	if inc.Variables["src"] == nil {
-		fmt.Println("Missing regex pattern for src files, may not work as you intend")
-	}
-
-	if inc.Variables["src"] != nil {
-		inc.Sf.Src = regexp.MustCompile(inc.Variables["src"].Expression)
-	} else {
-		inc.Sf.Src = regexp.MustCompile(`$^`)
-	}
-
-	if inc.Variables["inc"] != nil {
-		inc.Sf.Inc = regexp.MustCompile(inc.Variables["inc"].Expression)
-	} else {
-		inc.Sf.Inc = regexp.MustCompile(`$^`)
-	}
-	if inc.Variables["inc_pattern"] != nil {
-		inc.Sf.Inc_pattern = regexp.MustCompile(inc.Variables["inc_pattern"].Expression)
-	} else {
-		inc.Sf.Inc_pattern = regexp.MustCompile(`$^`)
-	}
-
-	return
+type Recipe struct {
+	Name        string
+	Ingredients []string
+	Cmds        []string
 }
 
-func Substitute(v string) (str string, err error) {
-	if !strings.Contains(v, "$") {
-		return v, nil
+var Store = map[string]string{"@": "RecipieName", "var": "hello"}
+var Recipes = map[string]*Recipe{}
+
+func init_variable(input string) bool {
+	indx := strings.Index(input, "=")
+	if indx == -1 {
+		return false
 	}
-	for _, value := range test.FindAllString(v, -1) {
-		indx := strings.Index(value, "$")
+	variableName := strings.TrimSpace(input[:indx])
+	expression := strings.TrimSpace(input[indx+1:])
+	expression = shell(expression)
+	Store[variableName] = expression
+	return true
+}
+
+func Update_variables(input string) bool {
+	indx := strings.IndexAny(input, "+=-")
+	if indx == -1 {
+		return false
+	}
+	i := strings.IndexAny(input[:indx], "$")
+	if i == -1 || (input[indx+1] != '=' && input[indx] != '=') {
+		return false
+	}
+
+	variableName := strings.TrimSpace(input[i+1 : indx])
+	switch {
+	case input[indx:indx+2] == "+=":
+		expression := input[indx+2:]
+		expression = shell(expression)
+		Store[variableName] += expression
+	case input[indx:indx+2] == "-=":
+		expression := input[indx+2:]
+		expression = shell(expression)
+		Store[variableName] = strings.Trim(Store[variableName], expression)
+	case input[indx] == '=':
+		expression := input[indx+1:]
+		expression = shell(expression)
+		Store[variableName] = expression
+	}
+	return true
+}
+
+/* Used in EXEC command */
+func Substitute(input string) string {
+	str := ""
+	for {
+		indx := strings.IndexAny(input, "$/ ")
 		switch {
 		case indx == -1:
-			str += value
-		case indx == 0 && value[indx+1] != '(':
-			elm, ok := inc.Variables[value[1:]]
-			if !ok {
-				return "", errors.New("Unknown variable")
+			return str + input
+		case input[indx] == '$':
+			next := strings.IndexAny(input[indx+1:], "$/. ")
+			if next != -1 {
+				str += Store[input[indx+1:next+1]]
+				input = input[next+1:]
+			} else {
+				str += Store[input[indx+1:]]
+				return str
 			}
-			str += elm.Expression
 		default:
-			str += value[:indx]
-			if value[indx+1] == '(' {
-				i := strings.Index(value, ")")
-				if i == -1 {
-					return "", errors.New("Malformed variable")
-				}
-				cmd := value[indx+2 : i]
-				out, err := exec.Command("bash", "-c", cmd).Output()
-				if err != nil {
-					return "", errors.New("Failed substitute command")
-				}
-				str += string(out[:len(out)-1])
-				str += value[i+1:]
+			//a space
+			str += input[:indx+1]
+			input = input[indx+1:]
+		}
+	}
+}
+
+func shell(str string) string {
+	str = strings.TrimSpace(str)
+	i := strings.LastIndex(str, ")")
+	if i == -1 || str[:2] != "$(" {
+		return str
+	}
+	cmd := str[2:i]
+	out, err := exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		return str
+	}
+	return string(out)
+}
+
+func ParseBuilder(builder string) {
+	var r *regexp.Regexp = regexp.MustCompile(`(?m)^(\S*)\s?:\s?(.*)$`)
+	lines := strings.Split(builder, "\n")
+	for i := 0; i < len(lines); i++ {
+		if r.Match([]byte(lines[i])) {
+			tmp := strings.Split(lines[i], ":")
+			name := strings.TrimSpace(tmp[0])
+			tmp = strings.Split(strings.TrimSpace(tmp[1]), " ")
+			ingredients := []string{}
+			if tmp[0] != "" {
+				ingredients = tmp
+			}
+			i++
+			cmds := []string{}
+			for ; i < len(lines) && len(lines[i]) > 1 && lines[i][0] == '\t'; i++ {
+				cmds = append(cmds, strings.TrimSpace(lines[i]))
+			}
+			Recipes[name] = &Recipe{name, ingredients, cmds}
+		} else {
+			if !Update_variables(lines[i]) {
+				init_variable(lines[i])
 			}
 		}
-		str += " "
 	}
-	str = strings.Trim(str, " ")
-	return
 }
 
-func Update_vars(name string, delimiter string, str string) (err error) {
-	switch {
-	case delimiter == "+=":
-		inc.Variables[name].Expression += " " + str
-	case delimiter == "-=":
-		inc.Variables[name].Expression = strings.Trim(inc.Variables[name].Expression, str)
-	case delimiter == "=":
-		inc.Variables[name] = &inc.Variable{name, str}
-	default:
-		err = errors.New("parser: Uptade_vars: Update vars wrong input")
-	}
-	switch {
-	case name == "inc":
-		inc.Sf.Inc = regexp.MustCompile(inc.Variables[name].Expression)
-	case name == "src":
-		inc.Sf.Src = regexp.MustCompile(inc.Variables[name].Expression)
-	case name == "inc_pattern":
-		inc.Sf.Inc_pattern = regexp.MustCompile(inc.Variables[name].Expression)
-	}
-
-	return
-}
-
+/*
 func Parse_state() (err error) {
 	var f *os.File
 	if f, err = os.OpenFile(".state", os.O_RDONLY, 0644); err != nil {
@@ -148,3 +135,4 @@ func Parse_state() (err error) {
 	}
 	return nil
 }
+*/

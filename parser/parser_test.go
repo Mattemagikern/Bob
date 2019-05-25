@@ -2,15 +2,13 @@ package parser
 
 import (
 	"fmt"
-	"github.com/Mattemagikern/Bob/utils"
 	"testing"
 )
 
 func TestSubstitute(t *testing.T) {
-	inc.Variables = map[string]*inc.Variable{
-		"CC":     {"CC", "clang"},
-		"CFLAGS": {"CFLAGS", "-Wall"},
-	}
+	Store["CC"] = "clang"
+	Store["CFLAGS"] = "-Wall"
+
 	str, err := Substitute("$CC hello $(echo stuff)")
 	if err != nil {
 		fmt.Println(str)
@@ -35,28 +33,12 @@ func TestSubstitute(t *testing.T) {
 }
 
 func TestUpdate_vars(t *testing.T) {
-	inc.Variables = map[string]*inc.Variable{
-		"CC":     {"CC", "clang"},
-		"CFLAGS": {"CFLAGS", "-Wall"},
-	}
-	expected := "clang NopeTown"
-	name := "CC"
-	delimiter := "+="
-	expression := "NopeTown"
-	Update_vars(name, delimiter, expression)
-	if inc.Variables["CC"].Expression != expected {
-		t.Errorf("Result:%s, Expected:%s\n", inc.Variables["CC"].Expression, expected)
-	}
+	Store["CC"] = "clang"
+	Store["CFLAGS"] = "-Wall"
 }
 
 func TestParseBuilder(t *testing.T) {
-	builder := `search {
-	inc .*\/inc\/(.*)\.h$
-	src .*\/src\/(.*)\.c$
-	include_pattern (?m)(?:^#include[\s]*)[<|"](.*)[>|"]
-}
-
-CC      = gcc
+	builder := `CC      = gcc
 dep     =  -I../MasterThesis/code/inc -I../MasterThesis/code/inc/pkg -I../MasterThesis/code/test -I../MasterThesis/code/test/testvector
 CFLAGS   = -Wall -Wextra -std=c99 -Wno-format -Wno-parentheses -Wno-empty-body -DROHC_UDP -pthread
 $CFLAGS  += $dep
@@ -72,10 +54,8 @@ client:
 
 debug:
 	$LA = $(ls -la)
-	$CFLAGS += -DDEBUG
+	$CFLAGS += -DDEBUG`
 
-../MasterThesis/code/obj/%.o:%.c
-	$CC $CFLAGS -c -o $@ $<`
 	Parse_builder(builder)
 	if inc.Variables["CC"].Expression != "gcc" {
 		t.Errorf("Builder parsing failed")
