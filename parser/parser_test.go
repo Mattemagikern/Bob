@@ -1,40 +1,47 @@
 package parser
 
 import (
-	"fmt"
+	"log"
 	"testing"
 )
+
+func TestSubsitutePath(t *testing.T) {
+	Store["DESTDIR"] = "/mnt"
+	Store["CC"] = "go build"
+	Store["@"] = "test"
+	input := "$DESTDIR/etc/stuff"
+	str := Substitute(input)
+	if str != "/mnt/etc/stuff" {
+		t.Errorf("error:%s\n", str)
+	}
+	input = "$CC -o $DESTDIR/usr/bin/$@"
+	str = Substitute(input)
+	if str != "go build -o /mnt/usr/bin/test" {
+		t.Errorf("error:%s\n", str)
+	}
+
+}
 
 func TestSubstitute(t *testing.T) {
 	Store["CC"] = "clang"
 	Store["CFLAGS"] = "-Wall"
 
-	str, err := Substitute("$CC hello $(echo stuff)")
-	if err != nil {
-		fmt.Println(str)
-		t.Errorf(err.Error())
+	s := "export GOPATH=$(echo pass); $CC -o main main.c"
+	str := Substitute(s)
+	if str != "export GOPATH=pass; clang -o main main.c" {
+		t.Errorf("error: exp:export GOPATH=pass; clang -o main main.c [[ acctual: %s\n", str)
 	}
-	fmt.Println(str)
 
-	s := "export HELLO=$(pwd); $CC $CFLAGS -o server ../MasterThesis/code/test/server.c"
-	str, err = Substitute(s)
-	fmt.Println(str)
-	if err != nil {
-		t.Errorf("error:%s\n", err.Error())
+	str = Substitute("$CC hello $(echo stuff)")
+	if str != "clang hello stuff" {
+		t.Errorf("error:%s\n", str)
 	}
-	fmt.Println(str)
-	s = "export GOOPATH=$(pwd); $CC -o bin/master master"
-	str, err = Substitute(s)
-	fmt.Println(str)
-	if err != nil {
-		t.Errorf("error:%s\n", err.Error())
-	}
-	fmt.Println(str)
-}
 
-func TestUpdate_vars(t *testing.T) {
-	Store["CC"] = "clang"
-	Store["CFLAGS"] = "-Wall"
+	s = "export HELLO=$(echo pass); $CC $CFLAGS -o server main.c"
+	str = Substitute(s)
+	if str != "export HELLO=pass; clang -Wall -o server main.c" {
+		t.Errorf("error:%s\n", str)
+	}
 }
 
 func TestParseBuilder(t *testing.T) {
@@ -56,8 +63,8 @@ debug:
 	$LA = $(ls -la)
 	$CFLAGS += -DDEBUG`
 
-	Parse_builder(builder)
-	if inc.Variables["CC"].Expression != "gcc" {
+	ParseBuilder(builder)
+	if Store["CC"] != "gcc" {
 		t.Errorf("Builder parsing failed")
 	}
 }

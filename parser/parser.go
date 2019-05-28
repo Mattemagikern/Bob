@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"log"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -15,7 +16,7 @@ type Recipe struct {
 var Store = map[string]string{"@": "RecipieName", "var": "hello"}
 var Recipes = map[string]*Recipe{}
 
-func init_variable(input string) bool {
+func Init_variable(input string) bool {
 	indx := strings.Index(input, "=")
 	if indx == -1 {
 		return false
@@ -61,10 +62,19 @@ func Substitute(input string) string {
 	for {
 		indx := strings.IndexAny(input, "$/ ")
 		switch {
-		case indx == -1:
+		case indx == -1 || indx == len(input)-1:
 			return str + input
+		case input[indx:indx+2] == "$(":
+			if i := strings.Index(input, ")"); i != -1 {
+				str += input[:indx]
+				out := shell(input[indx : i+1])
+				str += out
+				input = input[i+1:]
+				continue
+			}
+			log.Fatal("Subsitute Error: malformed shell command:", input)
 		case input[indx] == '$':
-			next := strings.IndexAny(input[indx+1:], "$/. ")
+			next := strings.IndexAny(input[indx+1:], "$/.= ")
 			if next != -1 {
 				str += Store[input[indx+1:next+1]]
 				input = input[next+1:]
@@ -89,7 +99,10 @@ func shell(str string) string {
 	cmd := str[2:i]
 	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		return str
+		log.Fatal(str, err)
+	}
+	if string(out)[len(out)-1] == '\n' {
+		return string(out[:len(out)-1])
 	}
 	return string(out)
 }
@@ -114,7 +127,7 @@ func ParseBuilder(builder string) {
 			Recipes[name] = &Recipe{name, ingredients, cmds}
 		} else {
 			if !Update_variables(lines[i]) {
-				init_variable(lines[i])
+				Init_variable(lines[i])
 			}
 		}
 	}

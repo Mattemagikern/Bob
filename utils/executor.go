@@ -18,7 +18,6 @@ func Execute(recipe string) error {
 
 	for _, v := range parser.Recipes[recipe].Ingredients {
 		if err := Execute(v); err != nil {
-			log.Println(err)
 			return err
 		}
 	}

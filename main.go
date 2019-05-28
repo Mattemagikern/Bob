@@ -20,12 +20,16 @@ func main() {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	jobs = append(jobs, os.Args[1:]...)
+	for _, v := range os.Args[1:] {
+		if !parser.Init_variable(v) {
+			jobs = append(jobs, v)
+		}
+	}
 
 	for _, v := range jobs {
 		err := utils.Execute(v)
 		if err != nil {
-			log.Fatal(err, v)
+			log.Fatal(err)
 		}
 	}
 }
